@@ -2,6 +2,8 @@ import json
 import pandas as pd
 import redis
 
+from datetime import datetime, timedelta
+
 RELEVANT_KEYS = ['cpu_percent-0', 'cpu_percent-1', 'cpu_percent-2', 'cpu_percent-3', 'cpu_percent-4', 'cpu_percent-5', 'cpu_percent-6', 'cpu_percent-7', 'cpu_percent-8', 'cpu_percent-9', 'cpu_percent-10', 'cpu_percent-11', 'cpu_percent-12', 'cpu_percent-13', 'cpu_percent-14', 'cpu_percent-15', 'cpu_freq_current', 'n_pids']
 
 def handler(input, context):
@@ -12,13 +14,29 @@ def handler(input, context):
     '''
     response = {}
 
+    read_timestamp = datetime.strptime(metrics['timestamp'], "%Y-%m-%d %H:%M:%S.%f")
+    read_timestamp_60sec_diff = read_timestamp - timedelta(seconds = 60)
+    read_timestamp_60min_diff = read_timestamp - timedelta(seconds = 3600)
+
     # TODO: implement moving averageof each CPU  per minute
     for relevant_key in RELEVANT_KEYS:
-        previous_moving_average = env['moving_average_per_minute_{}'.format(relevant_key)]
-        averages_measured_per_minute = env['averages_measured_per_minute']
-        current_moving_average = (metrics[relevant_key] + previous_moving_average) / averages_measured_per_minute
+        previous_moving_average = 0.0
+        averages_measured_per_minute = 0
+        if relevant_key in env:
+            read_timestamp_list = env[relevant_key].keys()
+            read_datetimes_list = list(map(lambda x: x, "%Y-%m-%d %H:%M:%S.%f"))
+            filtered_read_datetimes_list = list(filter(lambda x: x > read_timestamp_60sec_diff)).sort(reverse = True)
+            if len(filtered_read_datetimes_list) > 0:
+                previous_moving_average = filtered_read_datetimes_list[0]
 
-        response['moving_average_per_minute_{}'.format(relevant_key)] = env['moving_average_per_minute_{}'.format(relevant_key)] = current_moving_average
+            averages_measured_per_minute = len(filtered_read_datetimes_list)
+
+        else:
+            env[relevant_key] = {}
+            
+        current_moving_average = (metrics[relevant_key] + previous_moving_average) / (averages_measured_per_minute + 1)
+
+        response['avg-util-{}-60sec'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][metrics['timestamp']] = current_moving_average
 
     # TODO: implement moving average of each CPU per hour
 
@@ -27,8 +45,8 @@ def handler(input, context):
     # TODO: store moving averages in env for next calculations
 
     # TODO: return all metrics computed using dict, e.g. avg-util-cpu1-60sec
-    return metrics
+    return response
 
 r = redis.Redis(host='192.168.121.189', port=6379, db=0)
 metrics = r.get('metrics')
-print(handler(metrics,{"env": 1}))
+print(handler(metrics,{"env": {}}))
