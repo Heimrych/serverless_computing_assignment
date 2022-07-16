@@ -18,33 +18,33 @@ def handler(input, context):
     read_timestamp_60sec_diff = read_timestamp - timedelta(seconds = 60)
     read_timestamp_60min_diff = read_timestamp - timedelta(seconds = 3600)
 
-    # TODO: implement moving averageof each CPU  per minute
     for relevant_key in RELEVANT_KEYS:
         previous_moving_average = 0.0
-        averages_measured_per_minute = 0
-        if relevant_key in env:
-            read_timestamp_list = env[relevant_key].keys()
-            read_datetimes_list = list(map(lambda x: x, "%Y-%m-%d %H:%M:%S.%f"))
-            filtered_read_datetimes_list = list(filter(lambda x: x > read_timestamp_60sec_diff)).sort(reverse = True)
-            if len(filtered_read_datetimes_list) > 0:
-                previous_moving_average = filtered_read_datetimes_list[0]
-
-            averages_measured_per_minute = len(filtered_read_datetimes_list)
-
-        else:
+        averages_measured = 0
+        if relevant_key not in env:
             env[relevant_key] = {}
-            
-        current_moving_average = (metrics[relevant_key] + previous_moving_average) / (averages_measured_per_minute + 1)
 
-        response['avg-util-{}-60sec'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][metrics['timestamp']] = current_moving_average
+        read_timestamp_list = env[relevant_key].keys()
+        read_datetimes_list = list(map(lambda x: datetime.strptime(x, "%Y-%m-%d %H:%M:%S.%f"), read_timestamp_list))
+        if len(read_datetimes_list) > 0:
+            read_datetimes_list_60sec_diff = list(filter(lambda x: x > read_timestamp_60sec_diff, read_datetimes_list)).sort(reverse = True)
+            if len(read_datetimes_list_60sec_diff) > 0:
+                previous_moving_average = read_datetimes_list_60sec_diff[0]['60sec']
+                averages_measured = len(read_datetimes_list_60sec_diff)
 
-    # TODO: implement moving average of each CPU per hour
+        env[relevant_key][metrics['timestamp']] = {}
+        current_moving_average_60sec = (metrics[relevant_key] + previous_moving_average) / (averages_measured + 1)
+        response['avg-util-{}-60sec'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][metrics['timestamp']]['60sec'] = current_moving_average_60sec
 
-    # TODO: implement moving average of n_pids per minute
+        if len(read_datetimes_list) > 0:
+            read_datetimes_list_60min_diff = list(filter(lambda x: x > read_timestamp_60min_diff, read_datetimes_list)).sort(reverse = True)
+            if len(read_datetimes_list_60min_diff) > 0:
+                previous_moving_average = read_datetimes_list_60min_diff[0]['60min']
+                averages_measured = len(read_datetimes_list_60min_diff)
 
-    # TODO: store moving averages in env for next calculations
+        current_moving_average_60min = (metrics[relevant_key] + previous_moving_average) / (averages_measured + 1)
+        response['avg-util-{}-60min'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][metrics['timestamp']]['60min'] = current_moving_average_60min
 
-    # TODO: return all metrics computed using dict, e.g. avg-util-cpu1-60sec
     return response
 
 r = redis.Redis(host='192.168.121.189', port=6379, db=0)
