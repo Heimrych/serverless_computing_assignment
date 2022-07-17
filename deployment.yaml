@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+        name: henrique-augusto-streamlit
+        labels: 
+                app: henrique-augusto-streamlist
+spec:
+        replicas: 2
+        selector:
+                matchLabels:
+                        app: henrique-augusto-streamlist
+        template:
+                metadata:
+                        labels:
+                                app: henrique-augusto-streamlist
+                spec:
+                        containers:
+                                - name: henrique-augusto-streamlist
+                                  image: henriquef/streamlist:0.1
+                                  ports:
+                                          - containerPort: 5113
