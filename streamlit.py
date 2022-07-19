@@ -17,9 +17,6 @@ while True:
     redis_data = redis.Redis(host='192.168.121.189', port='6379').get('augustolessa-proj3-output')
     json_data = json.loads(redis_data)
 
-    json_data.pop('avg-util-cpu_freq_current-60sec')
-    json_data.pop('avg-util-cpu_freq_current-60min')
-
     # Setup cpu df data
     data = {}
     filtered_data_60sec = {k: v for k, v in json_data.items() if k.startswith('avg-util-cpu') and k.endswith('60sec')}
