@@ -1,6 +1,4 @@
 import json
-from tkinter import N
-import pandas as pd
 import redis
 
 from datetime import datetime, timedelta
