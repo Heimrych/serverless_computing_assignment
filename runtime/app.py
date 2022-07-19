@@ -16,9 +16,9 @@ INTERVAL_TIME = int(os.getenv('INTERVAL', 15))
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT,
                        charset="utf-8", decode_responses=True)
 
-module_loader = importlib.util.find_spec('custom_module')
+module_loader = importlib.util.find_spec('usermodule')
 
-import custom_module
+import usermodule
 from context import Context
 context = Context(host=REDIS_HOST, port=REDIS_PORT,
                   input_key=REDIS_INPUT_KEY, output_key=REDIS_OUTPUT_KEY)
@@ -30,7 +30,7 @@ while True:
 
     if data:
         data = json.loads(data)
-        output = custom_module.handler(data, context)
+        output = usermodule.handler(data, context)
 
         if output and REDIS_OUTPUT_KEY:
             r.set(REDIS_OUTPUT_KEY, json.dumps(output))
