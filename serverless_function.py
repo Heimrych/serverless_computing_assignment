@@ -4,9 +4,13 @@ import redis
 from datetime import datetime, timedelta
 
 RELEVANT_KEYS = ['cpu_percent-0', 'cpu_percent-1', 'cpu_percent-2', 'cpu_percent-3', 'cpu_percent-4', 'cpu_percent-5', 'cpu_percent-6', 'cpu_percent-7', 'cpu_percent-8', 'cpu_percent-9', 'cpu_percent-10', 'cpu_percent-11', 'cpu_percent-12', 'cpu_percent-13', 'cpu_percent-14', 'cpu_percent-15', 'n_pids']
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
-def to_datetime(timestamp):
-  return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
+def str_to_datetime(timestamp):
+  return datetime.strptime(timestamp, DATETIME_FORMAT)
+
+def datetime_to_str(datetime):
+  return datetime.strftime(DATETIME_FORMAT)
 
 def setup_env(env, input, current_timestamp):
   if 'previous_executions' not in env:
@@ -18,7 +22,7 @@ def setup_env(env, input, current_timestamp):
 
 def lazy_fix_env(env, datetime_lower_bound):
   for timestamp in env['previous_executions']:
-      date = to_datetime(timestamp)
+      date = str_to_datetime(timestamp)
       if (date < datetime_lower_bound):
         del env['previous_executions'][timestamp]
 
@@ -30,18 +34,18 @@ def handler(input, context):
 	'''
 	response = {}
 
-	read_timestamp = to_datetime(input['timestamp'])
+	read_timestamp = str_to_datetime(input['timestamp'])
 	read_timestamp_60sec_diff = read_timestamp - timedelta(seconds = 60)
 	read_timestamp_60min_diff = read_timestamp - timedelta(seconds = 3600)
 
-	setup_env(env, input, read_timestamp)
+	setup_env(env, input, input['timestamp'])
 	lazy_fix_env(env, read_timestamp_60min_diff)
 
 	target_entries_sec = []
 	target_entries_min = []
 
 	for timestamp in env['previous_executions']:
-		date = to_datetime(timestamp)
+		date = str_to_datetime(timestamp)
 
 		# We'll always consider this timestamp entry for the hourly moving average
 		# because we know for sure we only have entries within the last hour (see `lazy_fix_env`)
