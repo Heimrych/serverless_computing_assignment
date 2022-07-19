@@ -16,6 +16,6 @@ spec:
                 spec:
                         containers:
                                 - name: henrique-augusto-streamlist
-                                  image: henriquef/streamlist:0.1
+                                  image: henriquef/cloud-serverless-streamlit:0.1
                                   ports:
                                           - containerPort: 5113
