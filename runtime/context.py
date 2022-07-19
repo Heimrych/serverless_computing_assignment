@@ -7,7 +7,7 @@ class Context(object):
         self.port = port
         self.input_key = input_key
         self.output_key = output_key
-        timestamp = os.path.getmtime("/opt/custom_module.py")
+        timestamp = os.path.getmtime("/opt/usermodule.py")
         self.function_getmtime = dt.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
         self.last_execution = None
         self.env = {}
