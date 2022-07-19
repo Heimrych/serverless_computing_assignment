@@ -39,37 +39,37 @@ def handler(input, context):
 	setup_env(env, input, read_timestamp)
 	lazy_fix_env(env, read_timestamp_60min_diff)
 
-	targets_sec = []
-	targets_min = []
+	target_entries_sec = []
+	target_entries_min = []
 
 	for timestamp in env['previous_executions']:
 		date = to_datetime(timestamp)
 
 		# We'll always consider this timestamp entry for the hourly moving average
 		# because we know for sure we only have entries within the last hour (see `lazy_fix_env`)
-		targets_min.append(env['previous_executions'][timestamp])
+		target_entries_min.append(env['previous_executions'][timestamp])
 
 		if (date >= read_timestamp_60sec_diff):
-			targets_sec.append(env['previous_executions'][timestamp])
+			target_entries_sec.append(env['previous_executions'][timestamp])
 
 	response = {}
 
 	for relevant_key in RELEVANT_KEYS:
 		num_cpus = 0
-		overall = 0
-		for moments in targets_sec:
+		key_metric_sum = 0
+		for entry in target_entries_sec:
 			num_cpus += 1
-			overall += moments[relevant_key]
+			key_metric_sum += entry[relevant_key]
 		
-		mov_avg_60sec = overall / num_cpus if num_cpus else 0
+		mov_avg_60sec = key_metric_sum / num_cpus if num_cpus else 0
 
 		num_cpus = 0
-		overall = 0
-		for moments in targets_min:
+		key_metric_sum = 0
+		for entry in target_entries_min:
 			num_cpus += 1
-			overall += moments[relevant_key]
+			key_metric_sum += entry[relevant_key]
 
-		mov_avg_60min = overall / num_cpus if num_cpus else 0
+		mov_avg_60min = key_metric_sum / num_cpus if num_cpus else 0
 
 		response['avg-util-{}-60sec'.format(relevant_key.replace('_percent-', ''))] = mov_avg_60sec
 		response['avg-util-{}-60min'.format(relevant_key.replace('_percent-', ''))] = mov_avg_60min
