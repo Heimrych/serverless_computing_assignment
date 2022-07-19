@@ -9,13 +9,12 @@ RELEVANT_KEYS = ['cpu_percent-0', 'cpu_percent-1', 'cpu_percent-2', 'cpu_percent
 def handler(input, context):
     env = context.env
     # env = {'cpu_percent-0': {'2022-07-16 21:54:54.869218': {'60sec': 85.7, '60min': 33.9}}}
-    metrics = input
     '''
     {'timestamp': '2022-07-16 19:08:54.869218', 'cpu_percent-0': 1.0, 'cpu_percent-1': 2.2, 'cpu_percent-2': 1.0, 'cpu_percent-3': 4.0, 'cpu_percent-4': 1.4, 'cpu_percent-5': 1.4, 'cpu_percent-6': 1.8, 'cpu_percent-7': 2.6, 'cpu_percent-8': 0.6, 'cpu_percent-9': 2.6, 'cpu_percent-10': 1.8, 'cpu_percent-11': 1.8, 'cpu_percent-12': 0.8, 'cpu_percent-13': 2.6, 'cpu_percent-14': 4.0, 'cpu_percent-15': 1.0, 'cpu_freq_current': 2666.760000000001, 'cpu_stats-ctx_switches': 15545135406, 'cpu_stats-interrupts': 8515418247, 'cpu_stats-soft_interrupts': 2801393181, 'cpu_stats-syscalls': 0, 'virtual_memory-total': 20986593280, 'virtual_memory-available': 13110468608, 'virtual_memory-percent': 37.5, 'virtual_memory-used': 7479259136, 'virtual_memory-free': 323936256, 'virtual_memory-active': 9059991552, 'virtual_memory-inactive': 7857815552, 'virtual_memory-buffers': 1236148224, 'virtual_memory-cached': 11947249664, 'virtual_memory-shared': 11337728, 'virtual_memory-slab': 3410583552, 'n_pids': 863, 'net_io_counters_eth0-bytes_sent': 3126008909, 'net_io_counters_eth0-bytes_recv': 10043666039, 'net_io_counters_eth0-packets_sent': 4524828, 'net_io_counters_eth0-packets_recv': 6864541, 'net_io_counters_eth0-errin': 0, 'net_io_counters_eth0-errout': 0, 'net_io_counters_eth0-dropin': 58, 'net_io_counters_eth0-dropout': 0}
     '''
     response = {}
 
-    read_timestamp = datetime.strptime(metrics['timestamp'], "%Y-%m-%d %H:%M:%S.%f")
+    read_timestamp = datetime.strptime(input['timestamp'], "%Y-%m-%d %H:%M:%S.%f")
     read_timestamp_60sec_diff = read_timestamp - timedelta(seconds = 60)
     read_timestamp_60min_diff = read_timestamp - timedelta(seconds = 3600)
 
@@ -35,12 +34,12 @@ def handler(input, context):
                 previous_moving_average = env[relevant_key][previous_moving_average_timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")]['60sec']
                 averages_measured = len(read_datetimes_list_60sec_diff) + 1
 
-        env[relevant_key][metrics['timestamp']] = {}
+        env[relevant_key][input['timestamp']] = {}
         if averages_measured > 1:
-            current_moving_average_60sec = (previous_moving_average * (averages_measured - 1) + metrics[relevant_key]) / averages_measured
+            current_moving_average_60sec = (previous_moving_average * (averages_measured - 1) + input[relevant_key]) / averages_measured
         else:
-            current_moving_average_60sec = metrics[relevant_key]
-        response['avg-util-{}-60sec'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][metrics['timestamp']]['60sec'] = current_moving_average_60sec
+            current_moving_average_60sec = input[relevant_key]
+        response['avg-util-{}-60sec'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][input['timestamp']]['60sec'] = current_moving_average_60sec
 
         if len(read_datetimes_list) > 0:
             read_datetimes_list_60min_diff = list(filter(lambda x: x > read_timestamp_60min_diff, read_datetimes_list))
@@ -51,13 +50,13 @@ def handler(input, context):
                 averages_measured = len(read_datetimes_list_60min_diff) + 1
 
         if averages_measured > 1:
-            current_moving_average_60min = (previous_moving_average * (averages_measured - 1) + metrics[relevant_key]) / averages_measured
+            current_moving_average_60min = (previous_moving_average * (averages_measured - 1) + input[relevant_key]) / averages_measured
         else:
-            current_moving_average_60min = metrics[relevant_key] 
-        response['avg-util-{}-60min'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][metrics['timestamp']]['60min'] = current_moving_average_60min
+            current_moving_average_60min = input[relevant_key] 
+        response['avg-util-{}-60min'.format(relevant_key.replace('_percent-', ''))] = env[relevant_key][input['timestamp']]['60min'] = current_moving_average_60min
 
     return response
 
-r = redis.Redis(host='192.168.121.189', port=6379, db=0)
-metrics = r.get('metrics')
-print(handler(metrics,{"env": {}}))
+# r = redis.Redis(host='192.168.121.189', port=6379, db=0)
+# metrics = r.get('metrics')
+# print(handler(metrics,{"env": {}}))
