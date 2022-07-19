@@ -30,7 +30,7 @@ while True:
 
     if data:
         data = json.loads(data)
-        output = lf.handler(data, context)
+        output = custom_module.handler(data, context)
 
         if output and REDIS_OUTPUT_KEY:
             r.set(REDIS_OUTPUT_KEY, json.dumps(output))

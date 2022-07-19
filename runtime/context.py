@@ -13,4 +13,4 @@ class Context(object):
         self.env = {}
 
     def set_last_execution(self):
-        self.last_execution = datetime.datetime.now()
+        self.last_execution = dt.now()
